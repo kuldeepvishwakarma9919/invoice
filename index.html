@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Invoice Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body{
+            font-family: roboto !important;
+        }
+        /* Custom Tailwind Configuration (Primary color: Blue-700) */
+        :root {
+            --primary-color: #1D4ED8; /* blue-700 */
+        }
+
+        /* --- Print Styles --- */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: white !important;
+                padding: 0 !important;
+            }
+            .invoice-container {
+                box-shadow: none !important;
+                border: none !important;
+            }
+            /* Ensure inputs look like clean text when printed */
+            input, textarea {
+                border: none !important;
+                padding: 0 !important;
+                background-color: transparent !important;
+                resize: none !important;
+                appearance: none !important; 
+                color: #1f2937 !important; /* dark gray */
+            }
+            /* Specific text alignment fixes for printing */
+            #invoiceItems input { text-align: right; }
+            #invoiceItems .item-desc { text-align: left; }
+            .editable-input, .editable-textarea { border-bottom: none !important; }
+        }
+
+        /* --- Custom Editable Input Styles --- */
+        .editable-input, .editable-textarea {
+            border-bottom: 1px dashed #ccc;
+            padding: 2px 4px;
+            transition: all 0.2s;
+            line-height: 1.5; /* Better readability */
+            display: inline-block;
+        }
+        .editable-input:focus, .editable-textarea:focus {
+            border-bottom: 1px solid var(--primary-color);
+            outline: none;
+            background-color: #f7fafc; /* gray-50 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-4 sm:p-8 font-sans">
+
+    <div class="max-w-7xl mx-auto">
+        
+        <div class="no-print bg-white p-5 rounded-xl shadow-lg mb-6 border-t-4 border-blue-600">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Invoice Actions</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <button onclick="addItem()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md focus:ring-4 focus:ring-blue-300">
+                    + Add New Item
+                </button>
+                <button onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md focus:ring-4 focus:ring-green-300">
+                    Print / Save as PDF
+                </button>
+                <button onclick="clearInvoice()" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-md focus:ring-4 focus:ring-red-300">
+                    Reset Invoice
+                </button>
+            </div>
+        </div>
+        
+        <div id="invoiceContainer" class="bg-white shadow-2xl rounded-2xl overflow-hidden invoice-container border border-gray-200">
+            
+            <header class="p-6 sm:p-10 bg-white border-b border-gray-200 flex flex-col md:flex-row justify-between items-start">
+                
+                <div class="mb-6 md:mb-0">
+                    <h1 class="text-5xl font-extrabold text-blue-700 mb-2">INVOICE</h1>
+                    <p class="text-gray-500 font-medium">Invoice No.:
+                        <input type="text" id="invoiceNumber" value="INV-2025-00123" class="editable-input text-gray-700 font-semibold w-32"/>
+                    </p>
+                </div>
+                
+                <div class="text-left md:text-right w-full md:w-auto">
+                    <input type="text" value="YOUR COMPANY NAME" class="editable-input text-2xl font-bold text-gray-800 text-right w-full mb-1"/>
+                    <textarea class="editable-textarea text-sm text-gray-600 text-right w-full resize-none h-12">123 Main Street, City, 123456 | contact@company.com | +91 9876543210</textarea>
+                </div>
+            </header>
+            
+            <section class="p-6 sm:p-10 border-b border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                
+                <div>
+                    <h3 class="text-base font-bold text-gray-700 mb-2 border-b-2 border-blue-500 inline-block pb-1">BILL TO</h3>
+                    <input type="text" value="Customer Name" class="editable-input w-full font-semibold text-gray-800 mb-1"/>
+                    <textarea class="editable-textarea w-full resize-none h-12 text-sm text-gray-600">Customer Address, City, Pin | customer@email.com</textarea>
+                </div>
+                
+                <div class="sm:col-span-2 sm:text-right">
+                    <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center mb-2">
+                        <span class="text-gray-700 font-medium w-32 sm:w-40 text-left sm:text-right">Issue Date:</span>
+                        <input type="date" id="issueDate" class="editable-input text-gray-800" value="2025-10-06"/>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center">
+                        <span class="text-gray-700 font-medium w-32 sm:w-40 text-left sm:text-right">Due Date:</span>
+                        <input type="date" id="dueDate" class="editable-input text-red-600 font-medium" value="2025-10-21"/>
+                    </div>
+                    <div class="mt-4 sm:mt-2">
+                        <span class="inline-block px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            PAYMENT DUE
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="p-4 sm:p-8">
+                <div class="overflow-x-auto border rounded-lg shadow-sm">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-1/2">Description</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Qty</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Rate</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                                <th class="px-2 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoiceItems" class="bg-white divide-y divide-gray-100">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="p-6 sm:p-10 bg-gray-50 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <div class="md:col-span-2">
+                    <h3 class="text-base font-bold text-gray-700 mb-2 border-b-2 border-blue-500 inline-block pb-1">Notes / Terms</h3>
+                    <textarea class="editable-textarea w-full resize-none h-20 text-sm text-gray-600">Please make the payment within the due date. Thank you for your business!</textarea>
+                </div>
+                
+                <div class="md:col-span-1">
+                    <div class="space-y-2">
+                        <div class="flex justify-between py-1">
+                            <span class="text-gray-700">Subtotal:</span>
+                            <span id="subTotal" class="text-gray-900 font-medium">₹0.00</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center py-1">
+                            <label for="taxRate" class="text-gray-700">Tax Rate (%):</label>
+                            <input type="number" id="taxRate" value="10" min="0" oninput="calculateTotal()" class="editable-input w-16 text-right"/>
+                        </div>
+                        
+                        <div class="flex justify-between py-1 border-b border-gray-300">
+                            <span class="text-gray-700">Total Tax:</span>
+                            <span id="totalTax" class="text-gray-900 font-medium">₹0.00</span>
+                        </div>
+                        
+                        <div class="flex justify-between py-3 text-2xl font-extrabold text-blue-700">
+                            <span>TOTAL DUE:</span>
+                            <span id="grandTotal">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="p-6 sm:p-10 bg-gray-800 text-white">
+                <h4 class="text-lg font-bold mb-2 border-b-2 border-white inline-block pb-1">Payment Information</h4>
+                <textarea class="bg-gray-800 text-sm text-gray-300 w-full resize-none h-16 p-1 rounded focus:outline-none focus:bg-gray-700">Bank Name: ABC Bank | Account No: XXXXXX12345 | IFSC: ABIN0001234. We accept UPI payments (ID: yourname@upi).</textarea>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial setup and loading of demo items
+            document.getElementById('issueDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('dueDate').value = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10); // 15 days from now
+            
+            // Add initial demo items
+            addItem("Consulting Service (5 hours)", 5, 500.00);
+            addItem("Software License Fee", 1, 2500.00);
+            calculateTotal();
+        });
+
+        function calculateItemTotal(row) {
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+            const total = qty * rate;
+            row.querySelector('.item-total').textContent = '₹' + total.toFixed(2);
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            const itemsContainer = document.getElementById('invoiceItems');
+            const rows = itemsContainer.querySelectorAll('tr');
+            let subTotal = 0;
+
+            rows.forEach(row => {
+                const totalText = row.querySelector('.item-total').textContent.replace('₹', '').replace(/,/g, '');
+                subTotal += parseFloat(totalText) || 0;
+            });
+
+            const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+            const totalTax = subTotal * (taxRate / 100);
+            const grandTotal = subTotal + totalTax;
+
+            document.getElementById('subTotal').textContent = '₹' + subTotal.toFixed(2);
+            document.getElementById('totalTax').textContent = '₹' + totalTax.toFixed(2);
+            document.getElementById('grandTotal').textContent = '₹' + grandTotal.toFixed(2);
+        }
+
+        function addItem(description = "", qty = 1, rate = 0.00) {
+            const tableBody = document.getElementById('invoiceItems');
+            const newRow = document.createElement('tr');
+            newRow.className = 'hover:bg-blue-50/50'; // Slight hover effect
+
+            newRow.innerHTML = `
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                    <input type="text" value="${description}" onchange="calculateTotal()" class="item-desc editable-input w-full" placeholder="Item Description..."/>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-600">
+                    <input type="number" value="${qty}" min="1" oninput="calculateItemTotal(this.closest('tr'))" class="item-qty editable-input w-16 text-right"/>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-600">
+                    <input type="number" value="${rate.toFixed(2)}" min="0" oninput="calculateItemTotal(this.closest('tr'))" class="item-rate editable-input w-24 text-right"/>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-bold text-gray-900 item-total">
+                    ₹${(qty * rate).toFixed(2)}
+                </td>
+                <td class="px-2 py-3 whitespace-nowrap text-center no-print">
+                    <button onclick="removeItem(this)" class="text-red-500 hover:text-red-700 font-medium transition duration-150 p-1 rounded hover:bg-red-100">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"></path></svg>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(newRow);
+            calculateTotal(); // Recalculate total after adding
+        }
+
+        function removeItem(button) {
+            const row = button.closest('tr');
+            row.remove();
+            calculateTotal(); // Recalculate total after removing
+        }
+
+        function clearInvoice() {
+            if (confirm("Are you sure you want to reset the invoice? All data will be cleared.")) {
+                document.getElementById('invoiceItems').innerHTML = '';
+                document.getElementById('issueDate').value = new Date().toISOString().slice(0, 10);
+                document.getElementById('dueDate').value = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+                // Reset tax rate to default
+                document.getElementById('taxRate').value = 10;
+                calculateTotal();
+            }
+        }
+    </script>
+
+</body>
+</html>
